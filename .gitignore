@@ -1,0 +1,9 @@
+.DS_Store
+*.cache
+*.properties
+*.class
+*.log
+*.xml
+*.xsl
+*.css
+target/
