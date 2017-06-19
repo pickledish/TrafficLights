@@ -36,15 +36,15 @@ package TrafficLights
 
 		def tick (): List[(PointOfInterest, Direction)] =
 		{
-			// If the intersection is disabled, count down by one, then do nothing
-			if (disabledCount > 0) { disabledCount -= 1; return List.empty }
-
-			tickCount += 1
-
 			// Decrement each car in transit by one tick, then add any which arrived at destination to returner
 			carsInTransit = carsInTransit map { c => (c._1, c._2, (c._3 - 1)) }
 			val returner = carsInTransit filter { c => c._3 == 0 } map { c => (c._1, c._2) }
 			carsInTransit = carsInTransit filter { c => c._3 > 0 }
+
+			// If the intersection is disabled, count down by one, then do nothing
+			if (disabledCount > 0) { disabledCount -= 1; return returner }
+
+			tickCount += 1
 
 			// Which way is traffic currently travelling through this intersection?
 			val oneWay = currentDirection
@@ -80,15 +80,13 @@ package TrafficLights
 		}
 
 		def setNeighbor(where: Direction, which: PointOfInterest, howFar: Int): Unit = 
-		{
-			neighbors = neighbors.updated(where, which)
-			nieghborDists = nieghborDists.updated(where, howFar)
-		}
+			{ neighbors = neighbors.updated(where, which); nieghborDists = nieghborDists.updated(where, howFar) }
 
 		def addWaitingCar(where: Direction, howMany: Int = 1): Unit = 
-		{
-			waitingCars = waitingCars.updated(where, waitingCars(where) + howMany)
-		}
+			{ waitingCars = waitingCars.updated(where, waitingCars(where) + howMany) }
+
+		override def toString: String = 
+			s"Intersection, waiting cars are ${waitingCars} and in-transit cars (past this intersection) is ${carsInTransit.length}"
 
 	}
 
@@ -101,9 +99,7 @@ package TrafficLights
 		def tick (): List[(PointOfInterest, Direction)] = List.empty
 
 		def addWaitingCar(where: Direction, howMany: Int = 1): Unit = 
-		{
-			arrivedCars = arrivedCars.updated(where, arrivedCars(where) + howMany)
-		}
+			{ arrivedCars = arrivedCars.updated(where, arrivedCars(where) + howMany) }
 
 	}
 
