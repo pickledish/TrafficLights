@@ -2,7 +2,13 @@ package object TrafficLights
 {
 	type Direction = Int
 
-	final val TRANSITION_TICKS = 8
+	trait PointOfInterest 
+	{
+		def tick (): List[(PointOfInterest, Direction)]
+		def addWaitingCar(where: Direction, howMany: Int = 1): Unit
+	}
+
+	final val TRANSITION_TICKS = 3
 
 	final val NORTH: Direction = 0
 	final val EAST:	 Direction = 1
@@ -14,17 +20,21 @@ package TrafficLights
 {
 	case class Ratio (cars_northsouth: Int, cars_eastwest: Int, startDirection: Direction) 
 
-	class Intersection (val ratio: Ratio, val neighbors: List[Intersection], val nieghborDists: List[Int])
+	class Intersection (val ratio: Ratio) extends PointOfInterest 
 	{
 
-		private var currentDirection = ratio.startDirection
-		private var waitingCars = List(0,0,0,0)
-		private var stasisCars: List[(Intersection, Direction, Int)] = List.empty
+		var currentDirection = ratio.startDirection
+		var waitingCars = List(0,0,0,0)
+		var carsInTransit: List[(PointOfInterest, Direction, Int)] = List.empty
 
-		private var tickCount: Int = 0
-		private var disabledCount: Int = 0
+		// TODO: This is a travesty, no using null just because I'm lazy
+		var neighbors: List[PointOfInterest] = List(null, null, null, null)
+		var nieghborDists: List[Int] = List(0,0,0,0)
 
-		def tick (): List[(Intersection, Direction)] =
+		var tickCount: Int = 0
+		var disabledCount: Int = 0
+
+		def tick (): List[(PointOfInterest, Direction)] =
 		{
 			// If the intersection is disabled, count down by one, then do nothing
 			if (disabledCount > 0) { disabledCount -= 1; return List.empty }
@@ -32,9 +42,9 @@ package TrafficLights
 			tickCount += 1
 
 			// Decrement each car in transit by one tick, then add any which arrived at destination to returner
-			stasisCars = stasisCars map { c => (c._1, c._2, (c._3 - 1)) }
-			val returner = stasisCars filter { c => c._3 == 0 } map { c => (c._1, c._2) }
-			stasisCars = stasisCars filter { c => c._3 > 0 }
+			carsInTransit = carsInTransit map { c => (c._1, c._2, (c._3 - 1)) }
+			val returner = carsInTransit filter { c => c._3 == 0 } map { c => (c._1, c._2) }
+			carsInTransit = carsInTransit filter { c => c._3 > 0 }
 
 			// Which way is traffic currently travelling through this intersection?
 			val oneWay = currentDirection
@@ -43,12 +53,12 @@ package TrafficLights
 			// Let one car in each currently-green direction pass, and add them to the transit queue (stasis)
 			if (waitingCars(oneWay) > 0) {
 				waitingCars = waitingCars.updated(oneWay, waitingCars(oneWay) - 1)
-				stasisCars = (neighbors(otherWay), oneWay, nieghborDists(otherWay)) :: stasisCars
+				carsInTransit = (neighbors(otherWay), oneWay, nieghborDists(otherWay)) :: carsInTransit
 			}
 
 			if (waitingCars(otherWay) > 0) {
 				waitingCars = waitingCars.updated(otherWay, waitingCars(otherWay) - 1)
-				stasisCars = (neighbors(oneWay), otherWay, nieghborDists(oneWay)) :: stasisCars
+				carsInTransit = (neighbors(oneWay), otherWay, nieghborDists(oneWay)) :: carsInTransit
 			}
 
 			// How many more cars are we going to let pass before the light turns red?
@@ -61,6 +71,7 @@ package TrafficLights
 
 			// If we've reached that limit, the light turns red, and we start the transition to other direction
 			if (tickCount == limit) {
+				tickCount = 0
 				currentDirection = (currentDirection + 1) % 4
 				disabledCount = TRANSITION_TICKS
 			}
@@ -68,6 +79,35 @@ package TrafficLights
 			return returner
 		}
 
+		def setNeighbor(where: Direction, which: PointOfInterest, howFar: Int): Unit = 
+		{
+			neighbors = neighbors.updated(where, which)
+			nieghborDists = nieghborDists.updated(where, howFar)
+		}
+
+		def addWaitingCar(where: Direction, howMany: Int = 1): Unit = 
+		{
+			waitingCars = waitingCars.updated(where, waitingCars(where) + howMany)
+		}
+
+	}
+
+	class Endpoint () extends PointOfInterest
+	{
+
+		private var arrivedCars = List(0,0,0,0)
+
+		// Does nothing, really
+		def tick (): List[(PointOfInterest, Direction)] = List.empty
+
+		def addWaitingCar(where: Direction, howMany: Int = 1): Unit = 
+		{
+			arrivedCars = arrivedCars.updated(where, arrivedCars(where) + howMany)
+		}
+
 	}
 
 }
+
+
+
