@@ -2,18 +2,29 @@ package object TrafficLights
 {
 	type Direction = Int
 
-	trait PointOfInterest 
-	{
-		def tick (): List[(PointOfInterest, Direction)]
-		def addWaitingCar(where: Direction, howMany: Int = 1): Unit
-	}
-
 	final val TRANSITION_TICKS = 3
 
 	final val NORTH: Direction = 0
 	final val EAST:	 Direction = 1
 	final val SOUTH: Direction = 2
 	final val WEST:	 Direction = 3
+	final val Directions = List(NORTH, EAST, SOUTH, WEST)
+
+	def char2dir (c: Char): Direction = 
+	{
+		return c match {
+			case 'N' => NORTH
+			case 'E' => EAST
+			case 'S' => SOUTH
+			case 'W' => WEST
+		}
+	}
+
+	trait PointOfInterest 
+	{
+		def tick (): List[(PointOfInterest, Direction)]
+		def addWaitingCar(where: Direction, howMany: Int = 1): Unit
+	}
 }
 
 package TrafficLights
@@ -37,8 +48,8 @@ package TrafficLights
 		def tick (): List[(PointOfInterest, Direction)] =
 		{
 			// Decrement each car in transit by one tick, then add any which arrived at destination to returner
-			carsInTransit = carsInTransit map { c => (c._1, c._2, (c._3 - 1)) }
-			val returner = carsInTransit filter { c => c._3 == 0 } map { c => (c._1, c._2) }
+			carsInTransit = carsInTransit map    { c => (c._1, c._2, (c._3 - 1)) }
+			val returner  = carsInTransit filter { c => c._3 == 0 } map { c => (c._1, c._2) }
 			carsInTransit = carsInTransit filter { c => c._3 > 0 }
 
 			// If the intersection is disabled, count down by one, then do nothing
@@ -80,7 +91,11 @@ package TrafficLights
 		}
 
 		def setNeighbor(where: Direction, which: PointOfInterest, howFar: Int): Unit = 
-			{ neighbors = neighbors.updated(where, which); nieghborDists = nieghborDists.updated(where, howFar) }
+			{ 
+				println(where, which, howFar)
+				neighbors = neighbors.updated(where, which)
+				nieghborDists = nieghborDists.updated(where, howFar) 
+			}
 
 		def addWaitingCar(where: Direction, howMany: Int = 1): Unit = 
 			{ waitingCars = waitingCars.updated(where, waitingCars(where) + howMany) }
