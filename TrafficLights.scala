@@ -1,8 +1,11 @@
+import scala.util.Random
+
 package object TrafficLights 
 {
 	type Direction = Int
 
 	final val TRANSITION_TICKS = 3
+	final val MAX_STREAM_LENGTH = 10
 
 	final val NORTH: Direction = 0
 	final val EAST:	 Direction = 1
@@ -10,15 +13,7 @@ package object TrafficLights
 	final val WEST:	 Direction = 3
 	final val Directions = List(NORTH, EAST, SOUTH, WEST)
 
-	def char2dir (c: Char): Direction = 
-	{
-		return c match {
-			case 'N' => NORTH
-			case 'E' => EAST
-			case 'S' => SOUTH
-			case 'W' => WEST
-		}
-	}
+	def RandInt(min: Int, max: Int): Int = Random.nextInt(max - min) + min
 
 	trait PointOfInterest 
 	{
@@ -30,6 +25,16 @@ package object TrafficLights
 package TrafficLights
 {
 	case class Ratio (cars_northsouth: Int, cars_eastwest: Int, startDirection: Direction) 
+
+	object Ratio 
+	{
+		def random(): Ratio = {
+			val northCars: Int = RandInt(1,MAX_STREAM_LENGTH)
+			val westCars: Int = RandInt(1,MAX_STREAM_LENGTH)
+			val dir: Direction = RandInt(0,2)
+			return Ratio(northCars, westCars, dir)
+		}
+	}
 
 	class Intersection (val ratio: Ratio) extends PointOfInterest 
 	{
@@ -92,7 +97,6 @@ package TrafficLights
 
 		def setNeighbor(where: Direction, which: PointOfInterest, howFar: Int): Unit = 
 			{ 
-				println(where, which, howFar)
 				neighbors = neighbors.updated(where, which)
 				nieghborDists = nieghborDists.updated(where, howFar) 
 			}
