@@ -28,9 +28,10 @@ package TrafficLights
 
 	object Ratio 
 	{
-		def random(): Ratio = {
+		def random(): Ratio = 
+		{
 			val northCars: Int = RandInt(1,MAX_STREAM_LENGTH)
-			val westCars: Int = RandInt(1,MAX_STREAM_LENGTH)
+			val westCars: Int  = RandInt(1,MAX_STREAM_LENGTH)
 			val dir: Direction = RandInt(0,2)
 			return Ratio(northCars, westCars, dir)
 		}
@@ -105,13 +106,12 @@ package TrafficLights
 			{ waitingCars = waitingCars.updated(where, waitingCars(where) + howMany) }
 
 		override def toString: String = 
-			s"Intersection, waiting cars are ${waitingCars} and in-transit cars (past this intersection) is ${carsInTransit.length}"
+			s"Intersection of ratio ${ratio}, and waiting cars are ${waitingCars}"
 
 	}
 
 	class Endpoint () extends PointOfInterest
 	{
-
 		private var arrivedCars = List(0,0,0,0)
 
 		// Does nothing, really

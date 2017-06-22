@@ -14,7 +14,6 @@ package object State
 
 package State
 {
-
 	object State
 	{
 		def fromFile(file: String): State =
@@ -47,13 +46,32 @@ package State
 
 	class State(val intersections: List[Intersection])
 	{
-		def tick(): Unit = 
+		def tickAll(): Unit = 
 		{
 			//intersections foreach println
 			val toDisperse: List[(PointOfInterest, Direction)] = (intersections map {i => i.tick}).flatten
 			toDisperse foreach { c => c._1 addWaitingCar c._2 }
 		}
+
+		def getScore(): Int =
+		{
+			var s = 0
+			while ((intersections flatMap (_.waitingCars)).sum != 0) { tickAll(); s += 1 }
+			return s
+		}
+
+		def twiddle(): State =
+		{
+			val index: Int = RandInt(0, intersections.length)
+			val twiddled: Intersection = new Intersection(Ratio.random)
+			Directions foreach { d => twiddled addWaitingCar (d, intersections(index).waitingCars(d)) }
+			Directions foreach { d => if (twiddled.neighbors(d) == null) twiddled setNeighbor (d, new Endpoint, 1) }
+			return new State(intersections.take(index) ::: twiddled :: intersections.drop(index + 1))
+		}
 	}
 }
+
+
+
 
 
