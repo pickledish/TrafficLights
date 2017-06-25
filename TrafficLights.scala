@@ -40,28 +40,44 @@ package TrafficLights
 	class Intersection (val ratio: Ratio) extends PointOfInterest 
 	{
 
-		var currentDirection = ratio.startDirection
+		val currentDirection
+
 		var waitingCars = List(0,0,0,0)
+		var toDisperse: List[(PointOfInterest, Direction)] = List.empty
 		var carsInTransit: List[(PointOfInterest, Direction, Int)] = List.empty
 
-		// TODO: This is a travesty, no using null just because I'm lazy
+		// TODO: This is a travesty, I should not be using null just because I'm lazy
 		var neighbors: List[PointOfInterest] = List(null, null, null, null)
 		var nieghborDists: List[Int] = List(0,0,0,0)
 
-		var tickCount: Int = 0
-		var disabledCount: Int = 0
+		val tickCount: Int
+		val disabledCount: Int
 
-		def tick (): List[(PointOfInterest, Direction)] =
+		def tick (): Intersection =
 		{
+			// We're doing this with NO SIDE EFFECTS
+			val returner = new Intersection(this.ratio)
+
+			// See, this is where things go a little bad
+			returner.neighbors = this.neighbors
+			returner.nieghborDists = this.nieghborDists
+			returner.waitingCars = this.waitingCars
+
 			// Decrement each car in transit by one tick, then add any which arrived at destination to returner
-			carsInTransit = carsInTransit map    { c => (c._1, c._2, (c._3 - 1)) }
-			val returner  = carsInTransit filter { c => c._3 == 0 } map { c => (c._1, c._2) }
-			carsInTransit = carsInTransit filter { c => c._3 > 0 }
+			// Note, this also gets fucked by our quest for no-side-effect programming
+			val newCarsInTransit   = carsInTransit map { c => (c._1, c._2, (c._3 - 1)) }
+			returner.toDisperse    = newCarsInTransit filter { c => c._3 == 0 } map { c => (c._1, c._2) }
+			returner.carsInTransit = newCarsInTransit filter { c => c._3 > 0 }
 
 			// If the intersection is disabled, count down by one, then do nothing
-			if (disabledCount > 0) { disabledCount -= 1; return returner }
+			if (disabledCount > 0)
+			{
+				returner.waitingCars = this.waitingCars
+				returner.disabledCount = this.disabledCount - 1
+				return returner
+			}
 
-			tickCount += 1
+			returner.tickCount = this.tickCount + 1
 
 			// Which way is traffic currently travelling through this intersection?
 			val oneWay = currentDirection
@@ -69,13 +85,13 @@ package TrafficLights
 
 			// Let one car in each currently-green direction pass, and add them to the transit queue (stasis)
 			if (waitingCars(oneWay) > 0) {
-				waitingCars = waitingCars.updated(oneWay, waitingCars(oneWay) - 1)
-				carsInTransit = (neighbors(otherWay), oneWay, nieghborDists(otherWay)) :: carsInTransit
+				returner.waitingCars = returner.waitingCars.updated(oneWay, returner.waitingCars(oneWay) - 1)
+				returner.carsInTransit = (neighbors(otherWay), oneWay, nieghborDists(otherWay)) :: returner.carsInTransit
 			}
 
 			if (waitingCars(otherWay) > 0) {
-				waitingCars = waitingCars.updated(otherWay, waitingCars(otherWay) - 1)
-				carsInTransit = (neighbors(oneWay), otherWay, nieghborDists(oneWay)) :: carsInTransit
+				returner.waitingCars = returner.waitingCars.updated(otherWay, returner.waitingCars(otherWay) - 1)
+				returner.carsInTransit = (neighbors(oneWay), otherWay, nieghborDists(oneWay)) :: returner.carsInTransit
 			}
 
 			// How many more cars are we going to let pass before the light turns red?
@@ -88,9 +104,9 @@ package TrafficLights
 
 			// If we've reached that limit, the light turns red, and we start the transition to other direction
 			if (tickCount == limit) {
-				tickCount = 0
-				currentDirection = (currentDirection + 1) % 4
-				disabledCount = TRANSITION_TICKS
+				returner.tickCount = 0
+				returner.currentDirection = (currentDirection + 1) % 4
+				returner.disabledCount = TRANSITION_TICKS
 			}
 
 			return returner

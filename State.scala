@@ -48,8 +48,11 @@ package State
 	{
 		def tickAll(): Unit = 
 		{
-			//intersections foreach println
-			val toDisperse: List[(PointOfInterest, Direction)] = (intersections map {i => i.tick}).flatten
+			// intersections foreach println
+			val newIntersections: List[Intersection] = intersections map { i => i.tick }
+			val toDisperse = newIntersections flatmap { i => i.toDisperse } 
+
+			// Problem. All their neighbors are currentlty the neighbors from a tick ago
 			toDisperse foreach { c => c._1 addWaitingCar c._2 }
 		}
 
@@ -60,14 +63,21 @@ package State
 			return s
 		}
 
-		def twiddle(): State =
+		def twiddle(i: Int): State = 
 		{
-			val index: Int = RandInt(0, intersections.length)
 			val twiddled: Intersection = new Intersection(Ratio.random)
 			Directions foreach { d => twiddled addWaitingCar (d, intersections(index).waitingCars(d)) }
 			Directions foreach { d => if (twiddled.neighbors(d) == null) twiddled setNeighbor (d, new Endpoint, 1) }
 			return new State(intersections.take(index) ::: twiddled :: intersections.drop(index + 1))
 		}
+
+		def twiddleOne(): State = 
+		{
+			val index: Int = RandInt(0, intersections.length)
+			
+		}
+
+		def twiddleAll(): State = new State(intersections map (_.twiddleOne))
 	}
 }
 
