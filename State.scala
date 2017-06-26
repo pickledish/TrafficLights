@@ -16,6 +16,8 @@ package State
 {
 	object State
 	{
+		var linkList: List[List[String]] = List.empty
+
 		def fromFile(file: String): State =
 		{
 			// Read the input from a text file, and make $size new intersections 
@@ -26,9 +28,11 @@ package State
 			// Read in the neighbor matrix, and use each row to set neighbors of each intersection
 			for ( i <- 0 until size )
 			{
-				val decomp: List[List[Char]] = lines(i + 2).split(",").toList map { _.toList }
-				val filtered = List.range(0, size) filter { j => decomp(j).length == 2 } 
+				val decomp: List[String] = lines(i + 2).split(",").toList
+				val filtered = List.range(0, size) filter { j => decomp(j).length > 1 } 
 				filtered foreach { j => intersections(i) setNeighbor ( char2dir(decomp(j)(1)), intersections(j), decomp(j)(0).asDigit ) }
+
+				linkList = decomp :: linkList
 			}
 
 			for ( i <- 0 until size )
@@ -42,31 +46,55 @@ package State
 
 			return new State(intersections)
 		}
+
+		def linkIntersections(intersections: List[Intersection]): Unit =
+		{
+			for ( i <- 0 until intersections.length )
+			{
+				val decomp = linkList(i)
+				val filtered = List.range(0, intersections.length) filter { j => decomp(j).length > 1 } 
+				filtered foreach { j => intersections(i) setNeighbor ( char2dir(decomp(j)(1)), intersections(j), decomp(j)(0).asDigit ) }
+				intersections foreach { i => Directions foreach { d => if (i.neighbors(d) == null) i setNeighbor (d, new Endpoint, 1) } }
+			}
+		}
 	}
 
-	class State(val intersections: List[Intersection])
+	class State(val startSections: List[Intersection])
 	{
-		def tickAll(): Unit = 
+		val size: Int = startSections.length
+
+		def tickAll(currentSections: List[Intersection]): List[Intersection] = 
 		{
-			//intersections foreach println
-			val toDisperse: List[(PointOfInterest, Direction)] = (intersections map {i => i.tick}).flatten
-			toDisperse foreach { c => c._1 addWaitingCar c._2 }
+			val newSections: List[Intersection] = currentSections map { i => i.tick }
+			State.linkIntersections(newSections)
+			// newSections foreach { i => println(s" The toDisperse for this new intersection is ${i.toDisperse}") }
+			// newSections foreach { i => println(s" The neighbors for this new intersection is ${i.neighbors}") }
+			// newSections foreach { i => println(s" The waitingCars for this new intersection is ${i.waitingCars}") }
+			newSections foreach { i => i.toDisperse foreach { d => i.neighbors(d) addWaitingCar ((d + 2) % 4) } }
+			return newSections
 		}
 
 		def getScore(): Int =
 		{
 			var s = 0
-			while ((intersections flatMap (_.waitingCars)).sum != 0) { tickAll(); s += 1 }
+			var currentSections = startSections
+
+			while ((currentSections flatMap (_.waitingCars)).sum != 0)
+			{ 
+				currentSections = tickAll(currentSections)
+				s += 1 
+			}
+
 			return s
 		}
 
 		def twiddle(): State =
 		{
-			val index: Int = RandInt(0, intersections.length)
+			val index: Int = RandInt(0, size)
 			val twiddled: Intersection = new Intersection(Ratio.random)
-			Directions foreach { d => twiddled addWaitingCar (d, intersections(index).waitingCars(d)) }
+			Directions foreach { d => twiddled addWaitingCar (d, startSections(index).waitingCars(d)) }
 			Directions foreach { d => if (twiddled.neighbors(d) == null) twiddled setNeighbor (d, new Endpoint, 1) }
-			return new State(intersections.take(index) ::: twiddled :: intersections.drop(index + 1))
+			return new State(startSections.take(index) ::: twiddled :: startSections.drop(index + 1))
 		}
 	}
 }
