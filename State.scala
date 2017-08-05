@@ -62,6 +62,7 @@ package State
 	class State(val startSections: List[Intersection])
 	{
 		val size: Int = startSections.length
+		val cost: Int = getScore()
 
 		def tickAll(currentSections: List[Intersection]): List[Intersection] = 
 		{
@@ -92,9 +93,13 @@ package State
 		{
 			val index: Int = RandInt(0, size)
 			val twiddled: Intersection = new Intersection(Ratio.random)
+
+			twiddled.nieghborDists = startSections(index).nieghborDists
 			Directions foreach { d => twiddled addWaitingCar (d, startSections(index).waitingCars(d)) }
-			Directions foreach { d => if (twiddled.neighbors(d) == null) twiddled setNeighbor (d, new Endpoint, 1) }
-			return new State(startSections.take(index) ::: twiddled :: startSections.drop(index + 1))
+
+			val returner: List[Intersection] = startSections.take(index) ::: twiddled :: startSections.drop(index + 1)
+			State.linkIntersections(returner)
+			return new State(returner)
 		}
 	}
 }

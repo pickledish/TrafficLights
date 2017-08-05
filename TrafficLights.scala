@@ -46,7 +46,6 @@ package TrafficLights
 		var carsInTransit: List[(Direction, Int)] = List.empty
 		var toDisperse: List[Direction] = List.empty
 
-		// TODO: This is a travesty, no using null just because I'm lazy
 		var neighbors: List[PointOfInterest] = List(null, null, null, null)
 		var nieghborDists = List(0,0,0,0)
 
